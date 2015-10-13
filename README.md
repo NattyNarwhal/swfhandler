@@ -8,12 +8,16 @@ Make sure you have swftools and ImageMagick, clone into `$MEDIAWIKI/extensions`
 and then add this to `LocalSettings.php`:
 
 ```php
+// Load swfhandler
 require_once("$IP/extensions/swfhandler/swfhandler.php");
+
+// swfrender may require more RAM than MediaWiki gives by default. Increase as needed.
+$wgMaxShellMemory = 30000000; // (this number in KB)
+
+// Add SWFs to the upload list
+$wgFileExtensions[] = 'swf';
 ```
-
-Make sure you can upload SWF files. See the [MediaWiki manual](https://www.mediawiki.org/wiki/Manual:Configuring_file_uploads#Configuring_file_types).
-
-This has only been tested on MediaWiki 1.19 and 1.23.
+This has only been tested on MediaWiki 1.19, 1.23, and 1.25.
 
 ## Thanks
 
