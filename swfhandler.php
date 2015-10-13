@@ -11,8 +11,8 @@ $wgExtensionCredits['media'][] = array(
 	'path' => __FILE__,
 	'name' => 'swfhandler',
 	'author' => 'Calvin Buckley', 
-	'url' => 'http://imaginarycode.com/~calvin/', 
-	'description' => 'create thumbnails for Adobe SWF files',
+	'url' => 'http://wopr.imaginarycode.com/', 
+	'description' => 'Create thumbnails for Adobe SWF files',
 	'descriptionmsg' => 'swfhandler-desc',
 );
 

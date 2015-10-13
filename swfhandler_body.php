@@ -2,15 +2,9 @@
 
 // The ImageHandler parts are terribly documented. @bawolff tells me he'll fix it someday
 
-// MediaHandler::getParamMap, MediaHandler::validateParam, MediaHandler::makeParamString
-// MediaHandler::parseParamString, MediaHandler::normaliseParams, MediaHandler::getImageSize
-
 class swfhandler extends ImageHandler
 {
 	function isEnabled() { return true; }
-	
-	function canRender( $file ) { return true; }
-	function mustRender( $file ) { return true; }
 	
 	function getThumbType( $ext, $mime, $params = null ) {
 		return array( 'png', 'image/png' );
@@ -18,34 +12,6 @@ class swfhandler extends ImageHandler
 	
 	function getMetadataType( $image ) {
 		return 'swf';
-	}
-	
-	function normaliseParams( $image, &$params ) {
-		$mimeType = $image->getMimeType();
-	
-		if ( !isset( $params['width'] ) ) {
-			return false;
-		}
-	
-		$srcWidth = $image->getWidth();
-		$srcHeight = $image->getHeight();
-				
-		wfDebug( __METHOD__.": srcWidth: {$srcWidth} srcHeight: {$srcHeight}\n" );
-			
-		if ( isset( $params['height'] ) && $params['height'] != -1 ) {
-			if ( $params['width'] * $srcHeight > $params['height'] * $srcWidth ) {
-				$params['width'] = $this->fitBoxWidth( $srcWidth, $srcHeight, $params['height'] );
-			}
-		}
-
-		$params['height'] = File::scaleHeight( $srcWidth, $srcHeight, $params['width'] );
-		// if ( !$this->validateThumbParams( $params['width'], $params['height'], $srcWidth, $srcHeight, $mimeType ) ) {
-		//         return false;
-		// }
-
-		wfDebug( __METHOD__.": srcWidth: {$srcWidth} srcHeight: {$srcHeight}\n" );
-
-		return true;
 	}
 	
 	function getImageSize( $image, $path ) 
@@ -64,7 +30,7 @@ class swfhandler extends ImageHandler
 		return array ($width, $height );	
 	}
 	
-
+	// TODO: Should this func be refactored for a TransformableImageHandler?
 	function doTransform( $image, $dstPath, $dstUrl, $params, $flags = 0 ) 
 	{
 		if ($params['width'] == 0) {
@@ -116,13 +82,14 @@ class swfhandler extends ImageHandler
 
 		// we render then scale
 		$cmd1 = "swfrender " . wfEscapeShellArg( $srcPath )." -o ". wfEscapeShellArg( $dstPath );
-		$cmd2 = "/usr/bin/mogrify -quality 2 -resize {$outWidth}x{$outHeight} ". wfEscapeShellArg( $dstPath );
+		$cmd2 = "mogrify -quality 2 -resize {$outWidth}x{$outHeight} ". wfEscapeShellArg( $dstPath );
 
 		wfProfileIn( 'convert' );
-		$err1 = wfShellExec($cmd1, $retval1);
-		if ( $retval == 0 )
+		$err1 = wfShellExecWithStderr($cmd1, $retval1);
+		$err2 = "not executed"; // otherwise it isn't defined
+		if ( $retval1 == 0 )
 		{
-			$err2 = wfShellExec($cmd2, $retval2);
+			$err2 = wfShellExecWithStderr($cmd2, $retval2);
 		}
 		wfProfileOut( 'convert' );
 
@@ -140,7 +107,8 @@ class swfhandler extends ImageHandler
 			wfDebugLog( 'thumbnail',
 				sprintf( 'thumbnail failed on step 2: errors %d "%s" from "%s"',
 					$retval2, trim($err2), $cmd2 ) );
-			return new MediaTransformError( 'thumbnail_error', $clientWidth, $clientHeight, $err );
+			return new MediaTransformError( 'thumbnail_error', $clientWidth, $clientHeight,
+				sprintf("(error 1: %s; error 2: %s)", $err1, $err2) );
 		} 
 		else 
 		{
@@ -183,16 +151,6 @@ class swfhandler extends ImageHandler
 		return trim($fps);
 	}
 
-	function getShortDesc( $image ) {
-		global $wgLang;
-		
-		$nbytes = wfMsgExt( 'nbytes', array( 'parsemag', 'escape' ),
-			$wgLang->formatNum( $image->getSize() ) );
-		$widthheight = wfMsgHtml( 'widthheight', $wgLang->formatNum( $image->getWidth() ) ,$wgLang->formatNum( $image->getHeight() ) );
-
-		return "$widthheight ($nbytes)";
-	}
-
 	function getLongDesc( $image ) {
 		global $wgLang;
 		return wfMsgExt('swf-long-video', 'parseinline',
@@ -203,15 +161,4 @@ class swfhandler extends ImageHandler
 			$wgLang->formatNum( $this->getFps( $image ) ),
 			$image->getMimeType() );
 	}
-
-	function getDimensionsString( $image ) {
-		global $wgLang;
-		
-		$width = $wgLang->formatNum( $image->getWidth() );
-		$height = $wgLang->formatNum( $image->getHeight() );
-
-		return wfMsg( 'widthheight', $width, $height );
-
-	}
-
 }
